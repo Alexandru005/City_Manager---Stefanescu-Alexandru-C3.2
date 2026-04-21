@@ -22,6 +22,8 @@ int main(int argc, char **argv) {
             set_username(argv[i + 1], username);
         }else if (strcmp(argv[i], "--add") == 0) {
             add(argv[i + 1], role, username);
+        }else if (strcmp(argv[i], "--list") == 0) {
+            list(argv[i + 1], role, username);
         }
     }
 

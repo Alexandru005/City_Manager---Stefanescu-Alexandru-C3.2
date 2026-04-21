@@ -24,6 +24,8 @@ typedef struct Report {
 
 void set_role(char *choosen_role, char *role);
 void set_username(char *choosen_username, char *username);
+
 void add(char *downtown, char *role, char *username);
+void list(char *downtown, char *role, char *username);
 
 #endif //PROIECT_FUNCTIONS_H
