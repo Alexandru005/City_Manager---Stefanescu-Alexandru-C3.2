@@ -5,19 +5,21 @@
 #include "functions.h"
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 
+// set the role for the user given in the command line
 void set_role(char *choosen_role, char *role) {
     strcpy(role, choosen_role);
 }
 
+// set the username for the user given in the command line
 void set_username(char *choosen_username, char *username) {
     strcpy(username, choosen_username);
 }
 
+// read & write the data for the reports.dat file
 void config_reports_file(int file, char *username, char *report_path) {
     report_t report;
     memset(&report, 0, sizeof(report_t)); // setam fiecare byte pe 0 pt a fi mai usor de citit datele vizual
@@ -58,6 +60,7 @@ void config_reports_file(int file, char *username, char *report_path) {
     write(file, &report, sizeof(report_t));
 }
 
+// read & write the data for the config_logged file
 void config_logged_district(int file, char *role, char *username, char *function) {
     // extragere data curenta
     time_t timestamp = time(NULL);
@@ -68,6 +71,10 @@ void config_logged_district(int file, char *role, char *username, char *function
     write(file, log, strlen(log));
 }
 
+// implementation for function add
+// creates directory
+// creates all files
+// initialize reports.dat & logged_districts files
 void add(char *district_id, char *role, char *username) {
     // creare path: Districts/<Nume-district>
     char path[128];
@@ -114,6 +121,7 @@ void add(char *district_id, char *role, char *username) {
     symlink(target_path, symlink_path);
 }
 
+// stores in a char variable all the permissions for each type "user"
 void get_permission(struct stat st, char *perm) {
     if (st.st_mode & S_IRUSR) perm[0] = 'r'; else perm[0] = '-';
     if (st.st_mode & S_IWUSR) perm[1] = 'w'; else perm[1] = '-';
@@ -130,6 +138,10 @@ void get_permission(struct stat st, char *perm) {
     perm[9] = '\0';
 }
 
+// implementation for function list
+// first we verify if the district it is registered
+// opens reports.dat file and list every report it has then list file details (capcity, last update, permissions)
+// opens logged_district and append last operation (list)
 void list(char *downtown, char *role, char *username) {
     // path directory
     char path[64];
@@ -192,3 +204,12 @@ void list(char *downtown, char *role, char *username) {
 
     close(logged_district_file);
 }
+
+// Observations:
+// 1. For add functionality (id it is not set corect)
+//       Example: id 1 / id 2 => delete id 1 => id 2  = (add new district) => id 2 / id 2
+//       Sugestion: check the id of the last element (last element should have the biggest id)
+// 2. view / remove_report / update_threshold
+
+
+
