@@ -55,7 +55,7 @@ void config_reports_file(int file, char *username, char *report_path) {
     report.timestamp = time(NULL);
 
     printf("Please enter a description:");
-    scanf("%s", report.description);
+    scanf(" %127[^\n]", report.description);
 
     write(file, &report, sizeof(report_t));
 }
