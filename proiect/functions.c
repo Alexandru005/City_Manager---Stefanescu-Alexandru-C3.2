@@ -63,6 +63,8 @@ void config_reports_file(int file, char *username, char *report_path) {
     printf("Please enter a description:");
     scanf(" %127[^\n]", report.description);
 
+    report.timestamp = time(NULL);
+
     write(file, &report, sizeof(report_t));
 }
 
@@ -206,6 +208,7 @@ void list(char *downtown, char *role, char *username) {
 
     close(report_file);
 
+    // scriere in logged_district
     char logged_district_path[128];
     snprintf(logged_district_path, sizeof(logged_district_path), "%s/%s", path, "logged_district");
 
@@ -231,6 +234,7 @@ void view(char *downtown, char *id, char *role, char *username) {
     int aux_id = atoi(id);
     int found = 0;
 
+    // cautam report - ul dupa id
     while (read(file, &report, sizeof(report_t)) == sizeof(report_t)) {
         if (report.report_id == aux_id) {
             print_report(&report);
@@ -240,13 +244,14 @@ void view(char *downtown, char *id, char *role, char *username) {
 
     close(file);
 
+    // daca nu l-am gasit afisam mesaj si ne oprim
     if (found == 0) {
         printf("The id is not valid!\n");
         return;
     }
 
 
-
+    // afisam in logged_district
     char path_file_logged_district[80];
     snprintf(path_file_logged_district, sizeof(path_file_logged_district), "%s/%s", path, "logged_district");
 
@@ -260,7 +265,7 @@ void view(char *downtown, char *id, char *role, char *username) {
 
 // remove a report by id & verify the role of the user to be manager
 void remove_report(char *downtown, char *id, char *role, char *username) {
-    if (strcmp(role, "manager") == 0) {
+    if (strcmp(role, "manager") == 0) { // verificam sa fie manager
         char path[64];
         snprintf(path, sizeof(path), "%s/%s", "Districts", downtown);
 
@@ -272,8 +277,9 @@ void remove_report(char *downtown, char *id, char *role, char *username) {
         int indx_id_deleted = -1;
         int nr_of_reports = 0;
         int id_value = atoi(id);
-
         report_t report;
+
+        // contorizam cate rapoarte avem & cautam index-ul raportului cautat
         while (read(file, &report, sizeof(report_t)) == sizeof(report_t)) {
             nr_of_reports++;
             if (report.report_id == id_value) {
@@ -281,12 +287,14 @@ void remove_report(char *downtown, char *id, char *role, char *username) {
             }
         }
 
+        // in caz ca nu exista afisam mesaj & ne oprim
         if (indx_id_deleted == -1) {
             printf("The id is not valid!\n");
             close(file);
             return;
         }
 
+        // suprascriem toate rapoartele peste cele precedente incepand cu
         for (int i = indx_id_deleted; i < nr_of_reports; i++) {
             lseek(file, i * sizeof(report_t), SEEK_SET);
             read(file, &report, sizeof(report_t));
@@ -315,7 +323,47 @@ void remove_report(char *downtown, char *id, char *role, char *username) {
     }
 }
 
+void update_threshold(char *downtown, char *value, char *role, char *username) {
+    if (strcmp(role, "manager") == 0) {
+        char path[64];
+        snprintf(path, sizeof(path), "%s/%s", "Districts", downtown);
 
+        char path_file_threshold[80];
+        snprintf(path_file_threshold, sizeof(path_file_threshold), "%s/%s", path, "district.cfg");
+
+        int file = open(path_file_threshold, O_RDWR);
+
+        struct stat st;
+        stat(path_file_threshold, &st);
+
+        mode_t perms = st.st_mode & 0777;
+        if (perms != 0640) {
+            printf("The file permission are not 640!\n");
+            return;
+        }
+
+        char text[128];
+        snprintf(text, sizeof(text), "%s=%d\n", "threshold", atoi(value));
+
+        write(file, text, strlen(text));
+
+        close(file);
+
+        char path_file_logged_district[80];
+        snprintf(path_file_logged_district, sizeof(path_file_logged_district), "%s/%s", path, "logged_district");
+
+        file = open(path_file_logged_district, O_APPEND | O_RDWR);
+
+        config_logged_district(file, role, username, "update_threshold");
+
+        close(file);
+
+        printf("The threshold was updated succesfully!\n");
+
+    }else {
+        printf("You don't have the permission!\n");
+    }
+}
 
 
 
@@ -330,7 +378,7 @@ void remove_report(char *downtown, char *id, char *role, char *username) {
 //       Example: id 1 / id 2 => delete id 1 => id 2  = (add new district) => id 2 / id 2
 //       Sugestion: check the id of the last element (last element should have the biggest id)
 // 2. Verify open/read/write/stat/mkdir/symlink
-// 3. view / remove_report / update_threshold
+// 3. update_threshold
 
 
 
