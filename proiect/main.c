@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         }else if (strcmp(argv[i], "--view") == 0) {
             view(argv[i + 1], argv[i + 2], role, username);
         }else if (strcmp(argv[i], "--remove_report") == 0) {
-
+            remove_report(argv[i + 1], argv[i + 2], role, username);
         }else if (strcmp(argv[i], "--update_threshold") == 0) {
 
         }

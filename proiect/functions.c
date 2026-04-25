@@ -51,7 +51,7 @@ void config_reports_file(int file, char *username, char *report_path) {
     scanf("%f", &report.gps_coordinates.latitude);
 
     printf("Please enter category (road/lighting/flooding/etc.):");
-    scanf("%s", report.issue_category);
+    scanf("%24s", report.issue_category);
 
     printf("Please introduce severity level (1/2/3):");
     do {
@@ -148,6 +148,21 @@ void get_permission(struct stat st, char *perm) {
     perm[9] = '\0';
 }
 
+//display report (only one)
+void print_report(report_t *report) {
+    printf("ID: %d\n", report->report_id);
+    printf("User: %s\n", report->inspector_name);
+    printf("Category: %s\n", report->issue_category);
+    printf("Severity: %d\n", report->severity_level);
+    printf("GPS: (%.2f, %.2f)\n", report->gps_coordinates.latitude, report->gps_coordinates.longitude);
+    printf("Description: %s\n", report->description);
+
+    char time_str[64];
+    struct tm *tm_info = localtime(&report->timestamp);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+    printf("Timestamp: %s\n", time_str);
+}
+
 // implementation for function list
 // first we verify if the district it is registered
 // opens reports.dat file and list every report it has then list file details (capcity, last update, permissions)
@@ -174,17 +189,7 @@ void list(char *downtown, char *role, char *username) {
     report_t report;
 
     while (read(report_file, &report, sizeof(report_t)) == sizeof(report_t)) {
-        printf("ID: %d\n", report.report_id);
-        printf("User: %s\n", report.inspector_name);
-        printf("Category: %s\n", report.issue_category);
-        printf("Severity: %d\n", report.severity_level);
-        printf("GPS: (%.2f, %.2f)\n", report.gps_coordinates.latitude, report.gps_coordinates.longitude);
-        printf("Description: %s\n", report.description);
-
-        char time_str[64];
-        struct tm *tm_info = localtime(&report.timestamp);
-        strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
-        printf("Timestamp: %s\n", time_str);
+        print_report(&report);
         printf("---------------------------------------\n\n");
     }
 
@@ -215,6 +220,7 @@ void list(char *downtown, char *role, char *username) {
     close(logged_district_file);
 }
 
+// display a specific report (by id)
 void view(char *downtown, char *id, char *role, char *username) {
     char path[64];
     snprintf(path, sizeof(path), "%s/%s", "Districts", downtown);
@@ -231,18 +237,7 @@ void view(char *downtown, char *id, char *role, char *username) {
 
     while (read(file, &report, sizeof(report_t)) == sizeof(report_t)) {
         if (report.report_id == aux_id) {
-            printf("ID: %d\n", report.report_id);
-            printf("User: %s\n", report.inspector_name);
-            printf("Category: %s\n", report.issue_category);
-            printf("Severity: %d\n", report.severity_level);
-            printf("GPS: (%.2f, %.2f)\n", report.gps_coordinates.latitude, report.gps_coordinates.longitude);
-            printf("Description: %s\n", report.description);
-
-            char time_str[64];
-            struct tm *tm_info = localtime(&report.timestamp);
-            strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
-            printf("Timestamp: %s\n", time_str);
-
+            print_report(&report);
             found = 1;
         }
     }
@@ -267,6 +262,60 @@ void view(char *downtown, char *id, char *role, char *username) {
 
 }
 
+// remove a report by id & verify the role of the user to be manager
+void remove_report(char *downtown, char *id, char *role, char *username) {
+    if (strcmp(role, "manager") == 0) {
+        char path[64];
+        snprintf(path, sizeof(path), "%s/%s", "Districts", downtown);
+
+        char path_file_reports[80];
+        snprintf(path_file_reports, sizeof(path_file_reports), "%s/%s", path, "reports.dat");
+
+        int file = open(path_file_reports, O_RDWR);
+
+        int indx_id_deleted = -1;
+        int nr_of_reports = 0;
+        int id_value = atoi(id);
+
+        report_t report;
+        while (read(file, &report, sizeof(report_t)) == sizeof(report_t)) {
+            nr_of_reports++;
+            if (report.report_id == id_value) {
+                indx_id_deleted = nr_of_reports;
+            }
+        }
+
+        if (indx_id_deleted == -1) {
+            printf("The id is not valid!\n");
+            close(file);
+            return;
+        }
+
+        for (int i = indx_id_deleted; i < nr_of_reports; i++) {
+            lseek(file, i * sizeof(report_t), SEEK_SET);
+            read(file, &report, sizeof(report_t));
+
+            lseek(file, (i - 1) * sizeof(report_t), SEEK_SET);
+            write(file, &report, sizeof(report_t));
+        }
+
+        ftruncate(file, (nr_of_reports - 1) * sizeof(report_t));
+
+        close(file);
+
+        char path_file_logged_district[80];
+        snprintf(path_file_logged_district, sizeof(path_file_logged_district), "%s/%s", path, "logged_district");
+
+        file = open(path_file_logged_district, O_APPEND | O_RDWR);
+
+        config_logged_district(file, role, username, "remove_report");
+
+        close(file);
+
+    }else if (strcmp(role, "manager") != 0) {
+        printf("You don't have the permission\n");
+    }
+}
 
 
 
@@ -282,7 +331,8 @@ void view(char *downtown, char *id, char *role, char *username) {
 // 1. For add functionality (id it is not set corect)✔️
 //       Example: id 1 / id 2 => delete id 1 => id 2  = (add new district) => id 2 / id 2
 //       Sugestion: check the id of the last element (last element should have the biggest id)
-// 2. view / remove_report / update_threshold
+// 2. Verify open/read/write/stat/mkdir/symlink
+// 3. view / remove_report / update_threshold
 
 
 
