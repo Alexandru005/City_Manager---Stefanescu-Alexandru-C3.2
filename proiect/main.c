@@ -3,8 +3,6 @@
 #include <string.h>
 #include "functions.h"
 
-
-
 int main(int argc, char **argv) {
 
     if (argc < 3) {
@@ -24,6 +22,12 @@ int main(int argc, char **argv) {
             add(argv[i + 1], role, username);
         }else if (strcmp(argv[i], "--list") == 0) {
             list(argv[i + 1], role, username);
+        }else if (strcmp(argv[i], "--view") == 0) {
+            view(argv[i + 1], argv[i + 2], role, username);
+        }else if (strcmp(argv[i], "--remove_report") == 0) {
+
+        }else if (strcmp(argv[i], "--update_threshold") == 0) {
+
         }
     }
 

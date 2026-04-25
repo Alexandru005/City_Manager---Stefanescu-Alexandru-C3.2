@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 // set the role for the user given in the command line
 void set_role(char *choosen_role, char *role) {
@@ -28,7 +29,17 @@ void config_reports_file(int file, char *username, char *report_path) {
     struct stat st;
     stat(report_path, &st);
     int num_reports = st.st_size / sizeof(report_t);
-    report.report_id = num_reports + 1;
+
+    int max_id = 0;
+    report_t report_aux;
+    for (int i = 0; i < num_reports; i++) {
+        read(file, &report_aux, sizeof(report_t));
+        if (report_aux.report_id > max_id) {
+            max_id = report_aux.report_id;
+        }
+    }
+
+    report.report_id = max_id + 1;
 
     strcpy(report.inspector_name, username);
 
@@ -52,10 +63,9 @@ void config_reports_file(int file, char *username, char *report_path) {
 
     }while (1 > report.severity_level || report.severity_level > 3);
 
-    report.timestamp = time(NULL);
 
     printf("Please enter a description:");
-    scanf("%s", report.description);
+    scanf(" %127[^\n]", report.description);
 
     write(file, &report, sizeof(report_t));
 }
@@ -89,7 +99,7 @@ void add(char *district_id, char *role, char *username) {
 
     // creare / append in reports.dat
     snprintf(report_path, 256, "%s/%s", path, "reports.dat");
-    int fd1 = open(report_path, O_RDWR | O_CREAT | O_APPEND, 0644);
+    int fd1 = open(report_path, O_RDWR | O_CREAT | O_APPEND, 0664);
     chmod(report_path, 0664);
 
     config_reports_file(fd1, username, report_path); // scriere in fisier
@@ -205,8 +215,71 @@ void list(char *downtown, char *role, char *username) {
     close(logged_district_file);
 }
 
+void view(char *downtown, char *id, char *role, char *username) {
+    char path[64];
+    snprintf(path, sizeof(path), "%s/%s", "Districts", downtown);
+
+    char path_file_reports[80];
+    snprintf(path_file_reports, sizeof(path_file_reports), "%s/%s", path, "reports.dat");
+
+
+    int file = open(path_file_reports, O_RDONLY);
+
+    report_t report;
+    int aux_id = atoi(id);
+    int found = 0;
+
+    while (read(file, &report, sizeof(report_t)) == sizeof(report_t)) {
+        if (report.report_id == aux_id) {
+            printf("ID: %d\n", report.report_id);
+            printf("User: %s\n", report.inspector_name);
+            printf("Category: %s\n", report.issue_category);
+            printf("Severity: %d\n", report.severity_level);
+            printf("GPS: (%.2f, %.2f)\n", report.gps_coordinates.latitude, report.gps_coordinates.longitude);
+            printf("Description: %s\n", report.description);
+
+            char time_str[64];
+            struct tm *tm_info = localtime(&report.timestamp);
+            strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+            printf("Timestamp: %s\n", time_str);
+
+            found = 1;
+        }
+    }
+
+    close(file);
+
+    if (found == 0) {
+        printf("The id is not valid!\n");
+        return;
+    }
+
+
+
+    char path_file_logged_district[80];
+    snprintf(path_file_logged_district, sizeof(path_file_logged_district), "%s/%s", path, "logged_district");
+
+    file = open(path_file_logged_district, O_APPEND | O_RDWR);
+
+    config_logged_district(file, role, username, "view");
+
+    close(file);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
 // Observations:
-// 1. For add functionality (id it is not set corect)
+// 1. For add functionality (id it is not set corect)✔️
 //       Example: id 1 / id 2 => delete id 1 => id 2  = (add new district) => id 2 / id 2
 //       Sugestion: check the id of the last element (last element should have the biggest id)
 // 2. view / remove_report / update_threshold
