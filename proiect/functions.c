@@ -1,7 +1,3 @@
-//
-// Created by astef on 04/21/2026.
-//
-
 #include "functions.h"
 #include <stdio.h>
 #include <string.h>
@@ -311,6 +307,8 @@ void remove_report(char *downtown, char *id, char *role, char *username) {
         config_logged_district(file, role, username, "remove_report");
 
         close(file);
+
+        printf("The report was deleted succesfully!\n");
 
     }else if (strcmp(role, "manager") != 0) {
         printf("You don't have the permission\n");
