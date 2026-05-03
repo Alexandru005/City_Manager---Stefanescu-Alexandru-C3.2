@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 // set the role for the user given in the command line
 void set_role(char *choosen_role, char *role) {
@@ -369,18 +370,28 @@ void update_threshold(char *downtown, char *value, char *role, char *username) {
 }
 
 void remove_district(char *downtown, char *role, char *username) {
+    if (strcmp(role, "manager") != 0) {
+        printf("You don't have the permission!\n");
+        return;
+    }
+
     // path catre director
     char path[64];
     snprintf(path, sizeof(path), "%s/%s", "Districts", downtown);
 
     pid_t pid = fork();
     if (pid == 0) {
-
-        char *path_file[60] = "";
-        unlink("");
-
-        execlp("bash / sh", file, path, NULL);
+        execlp("bash", "bash", "script.sh", downtown, NULL);
+        printf("execlp failed!\n");
+        exit(1);
     }
+
+    wait(NULL);
+
+    // deleting symlink
+    char symlink_path[128];
+    snprintf(symlink_path, sizeof(symlink_path), "active_reports-%s", downtown);
+    unlink(symlink_path);
 
     printf("Directory %s was deleted succesfully!\n", downtown);
 

@@ -1,3 +1,5 @@
 #!/bin/bash
 
-cd
+cd Districts
+rm -rf $1
+cd ..
