@@ -28,6 +28,8 @@ int main(int argc, char **argv) {
             remove_report(argv[i + 1], argv[i + 2], role, username);
         }else if (strcmp(argv[i], "--update_threshold") == 0) {
             update_threshold(argv[i + 1], argv[i + 2], role, username);
+        }else if (strcmp(argv[i], "--remove_district") == 0) {
+            remove_district(argv[i + 1], role, username);
         }
     }
 

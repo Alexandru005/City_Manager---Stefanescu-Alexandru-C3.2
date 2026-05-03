@@ -323,6 +323,7 @@ void remove_report(char *downtown, char *id, char *role, char *username) {
     }
 }
 
+// update district.cfg
 void update_threshold(char *downtown, char *value, char *role, char *username) {
     if (strcmp(role, "manager") == 0) {
         char path[64];
@@ -333,6 +334,7 @@ void update_threshold(char *downtown, char *value, char *role, char *username) {
 
         int file = open(path_file_threshold, O_RDWR);
 
+        // verify file permissions
         struct stat st;
         stat(path_file_threshold, &st);
 
@@ -342,6 +344,7 @@ void update_threshold(char *downtown, char *value, char *role, char *username) {
             return;
         }
 
+        // update the file
         char text[128];
         snprintf(text, sizeof(text), "%s=%d\n", "threshold", atoi(value));
 
@@ -365,20 +368,28 @@ void update_threshold(char *downtown, char *value, char *role, char *username) {
     }
 }
 
+void remove_district(char *downtown, char *role, char *username) {
+    // path catre director
+    char path[64];
+    snprintf(path, sizeof(path), "%s/%s", "Districts", downtown);
+
+    pid_t pid = fork();
+    if (pid == 0) {
+
+        char *path_file[60] = "";
+        unlink("");
+
+        execlp("bash / sh", file, path, NULL);
+    }
+
+    printf("Directory %s was deleted succesfully!\n", downtown);
 
 
-
-
-
-
-
+}
 
 // Observations:
-// 1. For add functionality (id it is not set corect)✔️
-//       Example: id 1 / id 2 => delete id 1 => id 2  = (add new district) => id 2 / id 2
-//       Sugestion: check the id of the last element (last element should have the biggest id)
-// 2. Verify open/read/write/stat/mkdir/symlink
-// 3. update_threshold
+// 1. Verify open/read/write/stat/mkdir/symlink
+// 2. Filter function
 
 
 
