@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 // set the role for the user given in the command line
 void set_role(char *choosen_role, char *role) {
@@ -119,6 +120,30 @@ void add(char *district_id, char *role, char *username) {
     config_logged_district(fd3, role, username, "add"); // scriere in logged_district
 
     close(fd3);
+
+    // notificare monitor
+    int monitor_fd = open(".monitor_pid", O_RDONLY);
+    if (monitor_fd == -1) {
+        // fisierul nu exista - redeschidem logul si scriem
+        int fd_log = open(report_path, O_RDWR | O_APPEND);
+        config_logged_district(fd_log, role, username, "add - monitor could not be notified");
+        close(fd_log);
+    } else {
+        char pid_str[32];
+        memset(pid_str, 0, sizeof(pid_str));
+        read(monitor_fd, pid_str, sizeof(pid_str));
+        close(monitor_fd);
+
+        pid_t monitor_pid = atoi(pid_str);
+
+        int fd_log = open(report_path, O_RDWR | O_APPEND);
+        if (kill(monitor_pid, SIGUSR1) == 0) {
+            config_logged_district(fd_log, role, username, "add - monitor notified");
+        } else {
+            config_logged_district(fd_log, role, username, "add - monitor could not be notified");
+        }
+        close(fd_log);
+    }
 
     // creare symlink
     char symlink_path[128];
@@ -369,6 +394,125 @@ void update_threshold(char *downtown, char *value, char *role, char *username) {
     }
 }
 
+int parse_condition(const char *input, char *field, char *op, char *value) {
+    // copiem input-ul ca sa nu il modificam
+    char copy[256];
+    strncpy(copy, input, sizeof(copy));
+
+    // splitam dupa ':'
+    char *token = strtok(copy, ":");
+    if (token == NULL) return 0;
+    strcpy(field, token);
+
+    token = strtok(NULL, ":");
+    if (token == NULL) return 0;
+    strcpy(op, token);
+
+    token = strtok(NULL, ":");
+    if (token == NULL) return 0;
+    strcpy(value, token);
+
+    return 1;
+}
+
+int match_condition(report_t *r, const char *field, const char *op, const char *value) {
+    if (strcmp(field, "severity") == 0) {
+        int val = atoi(value);
+        if (strcmp(op, "==") == 0) return r->severity_level == val;
+        if (strcmp(op, "!=") == 0) return r->severity_level != val;
+        if (strcmp(op, "<")  == 0) return r->severity_level <  val;
+        if (strcmp(op, "<=") == 0) return r->severity_level <= val;
+        if (strcmp(op, ">")  == 0) return r->severity_level >  val;
+        if (strcmp(op, ">=") == 0) return r->severity_level >= val;
+    }
+    if (strcmp(field, "category") == 0) {
+        int cmp = strcmp(r->issue_category, value);
+        if (strcmp(op, "==") == 0) return cmp == 0;
+        if (strcmp(op, "!=") == 0) return cmp != 0;
+    }
+    if (strcmp(field, "inspector") == 0) {
+        int cmp = strcmp(r->inspector_name, value);
+        if (strcmp(op, "==") == 0) return cmp == 0;
+        if (strcmp(op, "!=") == 0) return cmp != 0;
+    }
+    if (strcmp(field, "timestamp") == 0) {
+        time_t val = (time_t)atol(value);
+        if (strcmp(op, "==") == 0) return r->timestamp == val;
+        if (strcmp(op, "!=") == 0) return r->timestamp != val;
+        if (strcmp(op, "<")  == 0) return r->timestamp <  val;
+        if (strcmp(op, "<=") == 0) return r->timestamp <= val;
+        if (strcmp(op, ">")  == 0) return r->timestamp >  val;
+        if (strcmp(op, ">=") == 0) return r->timestamp >= val;
+    }
+    return 0;
+}
+
+void filter(char *downtown, char *role, char *username, int argc, char **conditions, int nr_conditions) {
+    // path directory
+    char path[64];
+    snprintf(path, sizeof(path), "%s/%s", "Districts", downtown);
+
+    // verificam ca downtown - ul introdus sa existe
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        printf("District '%s' does not exist!\n", downtown);
+        return;
+    }
+
+    char report_path[128];
+    snprintf(report_path, sizeof(report_path), "%s/%s", path, "reports.dat");
+
+
+    int report_file = open(report_path, O_RDONLY);
+
+    // afisare
+    report_t report;
+
+    while (read(report_file, &report, sizeof(report_t)) == sizeof(report_t)) {
+        int all_match = 1;
+        for (int i = 0; i < nr_conditions; i++) {
+            char field[32], op[8], value[64];
+            parse_condition(conditions[i], field, op, value);
+            if (match_condition(&report, field, op, value) == 0) {
+                all_match = 0;
+                break;
+            }
+        }
+
+        if (all_match == 1) {
+            print_report(&report);
+            printf("---------------------------------------\n\n");
+        }
+    }
+
+    stat(report_path, &st);
+
+    printf("records.dat file details:\n");
+    printf("Size: %ld bytes\n", st.st_size);
+
+    char time_str[64];
+    struct tm *tm_info = localtime(&st.st_mtime);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+    printf("Last modified: %s\n", time_str);
+
+    char permissions[15];
+    get_permission(st, permissions);
+
+    printf("Permissions: %s\n", permissions);
+
+    close(report_file);
+
+    // scriere in logged_district
+    char logged_district_path[128];
+    snprintf(logged_district_path, sizeof(logged_district_path), "%s/%s", path, "logged_district");
+
+    int logged_district_file = open(logged_district_path, O_RDWR | O_APPEND);
+
+    config_logged_district(logged_district_file, role, username, "filter");
+
+    close(logged_district_file);
+}
+
 void remove_district(char *downtown, char *role, char *username) {
     if (strcmp(role, "manager") != 0) {
         printf("You don't have the permission!\n");
@@ -394,8 +538,6 @@ void remove_district(char *downtown, char *role, char *username) {
     unlink(symlink_path);
 
     printf("Directory %s was deleted succesfully!\n", downtown);
-
-
 }
 
 // Observations:

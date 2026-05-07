@@ -31,6 +31,7 @@ void list(char *downtown, char *role, char *username);
 void view(char *downtown, char *id, char *role, char *username);
 void remove_report(char *downtown, char *id, char *role, char *username);
 void update_threshold(char *downtown, char *value, char *role, char *username);
+void filter(char *downtown, char *role, char *username, int argc, char **conditions, int nr_conditions);
 void remove_district(char *downtown, char *role, char *username);
 
 #endif //PROIECT_FUNCTIONS_H

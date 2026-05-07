@@ -13,3 +13,16 @@
 [1777114235] role=manager user=Andrei action=update_threshold
 [1777295107] role=manager user=Andrei action=list
 [1777297711] role=manager user=Andrei action=list
+[1778178311] role=inspector user=alex action=filter
+[1778178367] role=manager user=Andrei action=add
+[1778178367] role=manager user=Andrei action=add - monitor notified
+[1778178372] role=inspector user=alex action=filter
+[1778178563] role=manager user=Andrei action=list
+[1778178593] role=inspector user=alex action=filter
+[1778178712] role=inspector user=alex action=filter
+[1778178797] role=inspector user=alex action=filter
+[1778178870] role=inspector user=alex action=filter
+[1778178974] role=inspector user=alex action=filter
+[1778179195] role=inspector user=alex action=filter
+[1778179223] role=inspector user=alex action=filter
+[1778179243] role=inspector user=alex action=filter

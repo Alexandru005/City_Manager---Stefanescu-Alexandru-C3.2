@@ -5,6 +5,7 @@
 
 int main(int argc, char **argv) {
 
+    setbuf(stdout, NULL);
     if (argc < 3) {
         printf("Argumente insuficiente!\n");
         exit(1);
@@ -28,6 +29,8 @@ int main(int argc, char **argv) {
             remove_report(argv[i + 1], argv[i + 2], role, username);
         }else if (strcmp(argv[i], "--update_threshold") == 0) {
             update_threshold(argv[i + 1], argv[i + 2], role, username);
+        }else if (strcmp(argv[i], "--filter") == 0) {
+            filter(argv[i + 1], role, username, argc, &argv[i + 2], argc - i - 2);
         }else if (strcmp(argv[i], "--remove_district") == 0) {
             remove_district(argv[i + 1], role, username);
         }
