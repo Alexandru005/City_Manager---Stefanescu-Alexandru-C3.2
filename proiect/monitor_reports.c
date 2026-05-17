@@ -18,6 +18,16 @@ void handle_sigint(int sig) {
 
 int main() {
 
+    int existing = open(".monitor_pid", O_RDONLY);
+    if (existing != -1) {
+        char pid_str[32];
+        memset(pid_str, 0, sizeof(pid_str));
+        read(existing, pid_str, sizeof(pid_str));
+        close(existing);
+        printf("ERROR:Monitor already running with PID %s\n", pid_str);
+        exit(1);
+    }
+
     // 2.1
     // create hidden file
     int file = open(".monitor_pid", O_RDWR | O_CREAT | O_TRUNC, 0644);
